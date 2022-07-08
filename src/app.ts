@@ -1,3 +1,4 @@
+//@ts-nocheck
 import path from 'path';
 import favicon from 'serve-favicon';
 import compress from 'compression';
@@ -38,14 +39,54 @@ app.use('/', express.static(app.get('public')));
 
 // Set up Plugins and providers
 app.configure(express.rest());
-app.configure(socketio());
+
+const sockets: Record<string, any> = {};
+// const userIdToSockets: Record<string, any> = {};
+
+app.configure(socketio(io => {
+
+  io.on('connection', socket => {
+    const userId = socket.handshake.query.id
+    const socketId = socket.conn.id;
+
+    socket.userId = userId
+
+    const found = sockets[userId]?.find((s: SocketIO.Socket) => s?.conn?.id === socketId);
+
+    if (found) {
+      return;
+    }
+
+    sockets[userId] = Array.isArray(sockets[userId])
+      ? [...sockets[userId], socket]
+      : [socket];
+
+    console.log(sockets)
+
+    socket.conn.on('close', () => {
+      const foundSockets = sockets[socket.userId];
+      const filteredSockets = foundSockets.filter((s: SocketIO.Socket) => s.conn.id !== socket.conn.id);
+
+      sockets[socket.userId] = filteredSockets;
+
+      if (!sockets[socket.userId].length) {
+        delete sockets[socket.userId]
+      }
+
+      socket.removeAllListeners();
+
+      console.log(sockets);
+    })
+  })
+
+}));
 
 // Configure other middleware (see `middleware/index.ts`)
 app.configure(middleware);
 // Set up our services (see `services/index.ts`)
 app.configure(services);
 // Set up event channels (see channels.ts)
-app.configure(channels);
+// app.configure(channels);
 
 // Configure a middleware for 404s and the error handler
 app.use(express.notFound());

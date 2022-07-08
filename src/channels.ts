@@ -8,10 +8,14 @@ export default function(app: Application): void {
     return;
   }
 
-  app.on('connection', (connection: any): void => {
-    // On a new real-time connection, add it to the anonymous channel
-    app.channel('anonymous').join(connection);
-  });
+  // app.on('connection', (connection: any): void => {
+  //   // On a new real-time connection, add it to the anonymous channel
+  //   app.channel('anonymous').join(connection);
+  // });
+
+  app.on('custom', (data) => {
+
+  })
 
   app.on('login', (authResult: any, { connection }: any): void => {
     // connection can be undefined if there is no
